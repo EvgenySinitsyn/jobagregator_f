@@ -17,7 +17,15 @@
 
 
     <component :is="currentComponent" @unauthorized="handleUnauthorized" @authorized="handleAuthorized" />
+    <div class="fab" @click="toggleFabWindow" v-if="logged">
+      <div class="fab-button">
+        <i class="fas fa-comment"></i>
+      </div>
+    </div>
 
+    <div v-if="logged" v-show="showFabWindow" class="fab-window">
+      <WhatsappPage />
+    </div>
   </div>
 </template>
 
@@ -43,10 +51,17 @@ export default {
       currentComponent: ResumePage, // или любой другой компонент по умолчанию
       logged: null,
       axiosInstance,
-      showPopover: false
+      showFabWindow: false,
+      isFabWindowLoaded: false,
     };
   },
   methods: {
+    toggleFabWindow() {
+      if (!this.isFabWindowLoaded) {
+        this.isFabWindowLoaded = true;
+      }
+      this.showFabWindow = !this.showFabWindow;
+    },
     changeComponent(component) {
       switch (component) {
         case 'resume':
@@ -218,5 +233,39 @@ nav span:hover {
 
 nav span.active {
   background-color: #333;
+}
+
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.fab-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: green;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  cursor: pointer;
+}
+
+.fab-window {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  background-color: rgb(51, 62, 53);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  padding: 20px;
+  border-radius: 5px;
+  max-width: 300px;
+}
+
+.fab-button i {
+  font-size: 24px;
 }
 </style>
