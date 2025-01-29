@@ -1,20 +1,23 @@
 <template>
   <div id="app">
     <header>
-      <h1>Jobagregator</h1>
+      <img src="@/assets/JobAgregator_logo.svg" alt="Jobagregator Logo" class="logo" />
       <nav>
         <span @click="changeComponent('resume')" :class="{ active: currentComponentName == 'resume' }">Резюме</span>
-        <span @click="changeComponent('vacancies')" :class="{ active: currentComponentName == 'vacancies' }">Вакансии</span>
+        <span @click="changeComponent('vacancies')"
+          :class="{ active: currentComponentName == 'vacancies' }">Вакансии</span>
         <span @click="changeComponent('stat')" :class="{ active: currentComponentName == 'stat' }">Статистика</span>
-        <a href="#">Вход</a>
-        <a href="#">Регистрация</a>
+        <span v-if="!logged" @click="changeComponent('login')" :class="{ active: currentComponentName == 'login' }">Вход
+          / Регистрация</span>
+        <span v-if="logged" @click="logout()" :class="{ active: currentComponentName == 'login' }">{{ logged.username }}
+          / Выход</span>
         <a href="#">О проекте</a>
       </nav>
     </header>
 
-    <main>
-      <component :is="currentComponent"></component>
-    </main>
+
+    <component :is="currentComponent" @unauthorized="handleUnauthorized" @authorized="handleAuthorized" />
+
   </div>
 </template>
 
@@ -22,34 +25,120 @@
 import ResumePage from './components/ResumePage.vue';
 import VacancyPage from './components/VacancyPage.vue';
 import StatPage from './components/StatPage.vue';
+import LoginPage from './components/LoginRegister.vue';
+import WhatsappPage from './components/WhatsappPage.vue';
+import axiosInstance from './axiosInstance';
 
 export default {
+  components: {
+    ResumePage,
+    VacancyPage,
+    StatPage,
+    LoginPage,
+    WhatsappPage,
+  },
   data() {
-  return {
-    currentComponentName: 'resume',
-    currentComponent: ResumePage // или любой другой компонент по умолчанию
-  };
-},
-methods: {
-  changeComponent(component) {
-    switch (component) {
-      case 'resume':
-        this.currentComponentName = 'resume';
-        this.currentComponent = ResumePage;
-        break;
-      case 'vacancies':
-        this.currentComponentName = 'vacancies';
-        this.currentComponent = VacancyPage;
-        break;
-      case 'stat':
-        this.currentComponentName = 'stat';
-        this.currentComponent = StatPage;
-        break;
-      default:
-        this.currentComponent = null;
+    return {
+      currentComponentName: 'resume',
+      currentComponent: ResumePage, // или любой другой компонент по умолчанию
+      logged: null,
+      axiosInstance,
+      showPopover: false
+    };
+  },
+  methods: {
+    changeComponent(component) {
+      switch (component) {
+        case 'resume':
+          this.currentComponentName = 'resume';
+          this.currentComponent = ResumePage;
+          break;
+        case 'vacancies':
+          this.currentComponentName = 'vacancies';
+          this.currentComponent = VacancyPage;
+          break;
+        case 'stat':
+          this.currentComponentName = 'stat';
+          this.currentComponent = StatPage;
+          break;
+        case 'login':
+          this.currentComponentName = 'login';
+          this.currentComponent = LoginPage;
+          break;
+        case 'whatsapp':
+          this.currentComponentName = 'whatsapp';
+          this.currentComponent = WhatsappPage;
+          break;
+        default:
+          this.currentComponent = null;
+      }
+    },
+    async checkUserStatus() {
+      const url = '/users/me';
+      try {
+        const response = await axiosInstance.get(url);
+        // Если запрос успешен и данные пользователя возвращены
+        this.logged = response.data; // Сохраняем данные пользователя
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          // Если получен статус 401, устанавливаем logged в null
+          this.logged = null;
+        } else {
+          // Обработка других ошибок (например, сетевых)
+          console.error('Ошибка при получении данных пользователя:', error);
+        }
+      }
+    },
+
+
+    async checkUserStatus() {
+      const url = '/users/me';
+      try {
+        const response = await axiosInstance.get(url);
+        // Если запрос успешен и данные пользователя возвращены
+        this.logged = response.data; // Сохраняем данные пользователя
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          // Если получен статус 401, устанавливаем logged в null
+          this.logged = null;
+        } else {
+          // Обработка других ошибок (например, сетевых)
+          console.error('Ошибка при получении данных пользователя:', error);
+        }
+      }
+    },
+    async logout_api() {
+      const url = '/logout';
+      try {
+        await axiosInstance.get(url);
+        this.logged = null;
+        localStorage.removeItem('access_token');
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          this.logged = null;
+        } else {
+          console.error('Ошибка при получении данных пользователя:', error);
+        }
+      }
+    },
+    logout() {
+      this.logout_api();
+      this.changeComponent('login');
+    },
+    handleUnauthorized() {
+      this.changeComponent('login'); // Компонент, который отображается при 401
+      this.logged = false;
+    },
+    handleAuthorized() {
+      this.changeComponent('resume');
+      this.checkUserStatus();
     }
-  }
-}
+  },
+  mounted() {
+    // Выполнение запроса при загрузке компонента
+    this.checkUserStatus();
+  },
+
 };
 </script>
 
@@ -65,10 +154,14 @@ body {
 }
 
 header {
-  position: fixed; /* Фиксируем заголовок */
-  top: 0; /* Устанавливаем его в верхней части экрана */
-  left: 0; /* Устанавливаем его в левом углу */
-  right: 0; /* Устанавливаем его в правом углу */
+  position: fixed;
+  /* Фиксируем заголовок */
+  top: 0;
+  /* Устанавливаем его в верхней части экрана */
+  left: 0;
+  /* Устанавливаем его в левом углу */
+  right: 0;
+  /* Устанавливаем его в правом углу */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -76,7 +169,8 @@ header {
   color: white;
   padding: 10px 20px;
   border-bottom: 2px solid #444;
-  z-index: 1000; /* Устанавливаем высокий z-index, чтобы заголовок был поверх других элементов */
+  z-index: 1000;
+  /* Устанавливаем высокий z-index, чтобы заголовок был поверх других элементов */
 }
 
 
@@ -126,4 +220,3 @@ nav span.active {
   background-color: #333;
 }
 </style>
-

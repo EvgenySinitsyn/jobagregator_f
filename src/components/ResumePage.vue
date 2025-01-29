@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axiosInstance from '../axiosInstance';
 import logo_superjob from '@/assets/logo_superjob.svg';
 import logo_hh from '@/assets/logo_hh.svg';
 import logo_sinitsa from '@/assets/logo_sinitsa.png';
@@ -101,7 +101,8 @@ export default {
       resumes: [],
       loading: false,
       error: null,
-      currentPage: 0
+      currentPage: 0,
+      axiosInstance
     };
   },
 
@@ -128,7 +129,7 @@ export default {
     async fetchResumes(page = 1) {
       this.loading = true;
       this.error = null;
-
+      const url = '/resumes';
       const params = {
         ...(this.city && this.city.trim() && { city: this.city }),
         ...(this.gender && this.gender.trim() && { gender: this.gender }),
@@ -143,11 +144,14 @@ export default {
       };
 
       try {
-        const response = await axios.get('http://localhost:8080/resumes', { params });
+        const response = await axiosInstance.get(url, { params });
         this.resumes = [...this.resumes, ...response.data];
       } catch (err) {
         console.error('Ошибка при получении данных:', err);
         if (err.response) {
+          if (err.response.status === 401) {
+            this.$emit('unauthorized');
+          }
           this.error = 'Ошибка: ' + err.response.status + ' ' + err.response.data;
         } else if (err.request) {
           this.error = 'Нет ответа от сервера. Проверьте соединение.';
@@ -158,15 +162,6 @@ export default {
         this.loading = false;
       }
     },
-    // handleScroll() {
-    //   const scrollTop = window.scrollY;
-    //   const windowHeight = window.innerHeight;
-    //   const documentHeight = document.documentElement.scrollHeight;
-
-    //   if (scrollTop + windowHeight >= documentHeight - 10 && !this.loading) {
-    //     this.loadMore();
-    //   }
-    // },
     loadMore() {
       this.currentPage++;
       if (!this.loading) {
@@ -176,7 +171,8 @@ export default {
   },
   mounted() {
     // window.addEventListener('scroll', this.handleScroll);
-    this.fetchResumes();
+    // this.fetchResumes();
+
   },
   beforeDestroy() {
     window.removeEventListener('scroll', this.handleScroll);
@@ -185,7 +181,7 @@ export default {
 
 </script>
 
-<style>
+<style scoped>
 body {
   font-family: Arial, sans-serif;
   margin: 0;
