@@ -3,10 +3,11 @@
     <header>
       <img src="@/assets/JobAgregator_logo.svg" alt="Jobagregator Logo" class="logo" />
       <nav>
-        <span @click="changeComponent('resume')" :class="{ active: currentComponentName == 'resume' }">Резюме</span>
-        <span @click="changeComponent('vacancies')"
-          :class="{ active: currentComponentName == 'vacancies' }">Вакансии</span>
-        <span @click="changeComponent('stat')" :class="{ active: currentComponentName == 'stat' }">Статистика</span>
+          <span v-if="logged" @click="changeComponent('resume')" :class="{ active: currentComponentName == 'resume' }">Резюме</span>
+          <span v-if="logged" @click="changeComponent('vacancies')"
+            :class="{ active: currentComponentName == 'vacancies' }">Вакансии</span>
+          <span v-if="logged" @click="changeComponent('stat')" :class="{ active: currentComponentName == 'stat' }">Статистика</span>
+
         <span v-if="!logged" @click="changeComponent('login')" :class="{ active: currentComponentName == 'login' }">Вход
           / Регистрация</span>
         <span v-if="logged" @click="logout()" :class="{ active: currentComponentName == 'login' }">{{ logged.username }}
@@ -16,15 +17,19 @@
     </header>
 
 
-    <component :is="currentComponent" @unauthorized="handleUnauthorized" @authorized="handleAuthorized" />
-    <div class="fab" @click="toggleFabWindow" v-if="logged">
+    <component :is="currentComponent" @unauthorized="handleUnauthorized" @authorized="handleAuthorized"
+      @selectPhone="setSelectedPhone" />
+    <div class="fab" @click="toggleFabWindow" v-if="logged && shosWhatsappButton">
       <div class="fab-button">
-        <i class="fas fa-comment"></i>
+        <img src="./assets/whatsapp.png" alt="Button" />
       </div>
     </div>
 
     <div v-if="logged" v-show="showFabWindow" class="fab-window">
-      <WhatsappPage />
+      <button @click="toggleFabWindow" class="close-button">
+        &#10006;
+      </button>
+      <WhatsappPage ref="WhatsappPage" />
     </div>
   </div>
 </template>
@@ -47,12 +52,14 @@ export default {
   },
   data() {
     return {
-      currentComponentName: 'resume',
-      currentComponent: ResumePage, // или любой другой компонент по умолчанию
+      currentComponentName: null,
+      currentComponent: ResumePage,
       logged: null,
       axiosInstance,
       showFabWindow: false,
       isFabWindowLoaded: false,
+      shosWhatsappButton: true,
+      messageSubscriberPhone: null,
     };
   },
   methods: {
@@ -61,6 +68,7 @@ export default {
         this.isFabWindowLoaded = true;
       }
       this.showFabWindow = !this.showFabWindow;
+      this.shosWhatsappButton = !this.shosWhatsappButton;
     },
     changeComponent(component) {
       switch (component) {
@@ -92,36 +100,17 @@ export default {
       const url = '/users/me';
       try {
         const response = await axiosInstance.get(url);
-        // Если запрос успешен и данные пользователя возвращены
-        this.logged = response.data; // Сохраняем данные пользователя
+        this.logged = response.data;
       } catch (error) {
         if (error.response && error.response.status === 401) {
-          // Если получен статус 401, устанавливаем logged в null
           this.logged = null;
+          this.changeComponent('login');
         } else {
-          // Обработка других ошибок (например, сетевых)
           console.error('Ошибка при получении данных пользователя:', error);
         }
       }
     },
 
-
-    async checkUserStatus() {
-      const url = '/users/me';
-      try {
-        const response = await axiosInstance.get(url);
-        // Если запрос успешен и данные пользователя возвращены
-        this.logged = response.data; // Сохраняем данные пользователя
-      } catch (error) {
-        if (error.response && error.response.status === 401) {
-          // Если получен статус 401, устанавливаем logged в null
-          this.logged = null;
-        } else {
-          // Обработка других ошибок (например, сетевых)
-          console.error('Ошибка при получении данных пользователя:', error);
-        }
-      }
-    },
     async logout_api() {
       const url = '/logout';
       try {
@@ -137,20 +126,30 @@ export default {
       }
     },
     logout() {
+      localStorage.removeItem('wa-connect');
+      localStorage.removeItem('wa-logged');
       this.logout_api();
       this.changeComponent('login');
+
+      console.log('logout')
     },
     handleUnauthorized() {
-      this.changeComponent('login'); // Компонент, который отображается при 401
+      this.changeComponent('login');
       this.logged = false;
     },
     handleAuthorized() {
       this.changeComponent('resume');
       this.checkUserStatus();
-    }
+    },
+    setSelectedPhone(phone) {
+      console.log(phone);
+      if (!this.showFabWindow) {
+        this.toggleFabWindow()
+      }
+      this.$refs.WhatsappPage.setPhoneNumber(phone);
+    },
   },
   mounted() {
-    // Выполнение запроса при загрузке компонента
     this.checkUserStatus();
   },
 
@@ -170,13 +169,9 @@ body {
 
 header {
   position: fixed;
-  /* Фиксируем заголовок */
   top: 0;
-  /* Устанавливаем его в верхней части экрана */
   left: 0;
-  /* Устанавливаем его в левом углу */
   right: 0;
-  /* Устанавливаем его в правом углу */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -185,7 +180,6 @@ header {
   padding: 10px 20px;
   border-bottom: 2px solid #444;
   z-index: 1000;
-  /* Устанавливаем высокий z-index, чтобы заголовок был поверх других элементов */
 }
 
 
@@ -237,7 +231,7 @@ nav span.active {
 
 .fab {
   position: fixed;
-  bottom: 20px;
+  top: 580px;
   right: 20px;
   z-index: 1000;
 }
@@ -256,16 +250,55 @@ nav span.active {
 
 .fab-window {
   position: fixed;
-  bottom: 80px;
-  right: 20px;
-  background-color: rgb(51, 62, 53);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  padding: 20px;
+  top: 325px;
+  right: 5px;
+  background-color: #0a0a0ac6;
+  box-shadow: 0 2px 20px rgba(56, 211, 71, 0.175);
+  padding: 5px;
   border-radius: 5px;
   max-width: 300px;
 }
 
 .fab-button i {
   font-size: 24px;
+}
+
+.close-button {
+  position: absolute;
+  top: -30px;
+  right: 0px;
+  z-index: 1000;
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 1px 3px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.fab-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
 }
 </style>

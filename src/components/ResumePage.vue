@@ -1,72 +1,72 @@
 <template>
 
-    <div class="container">
-      <aside class="sidebar">
-        <label for="position">Должность:</label>
-        <input type="text" id="position" v-model="text" placeholder="Введите должность">
+  <div class="container">
+    <aside class="sidebar">
+      <label for="position">Должность:</label>
+      <input type="text" id="position" v-model="text" placeholder="Введите должность">
 
-        <label for="city">Город:</label>
-        <input type="text" id="city" v-model="city" placeholder="Введите город">
+      <label for="city">Город:</label>
+      <input type="text" id="city" v-model="city" placeholder="Введите город">
 
-        <label for="gender">Пол:</label>
-        <select id="gender" v-model="gender">
-          <option value="">Выберите пол</option>
-          <option value="male">Мужской</option>
-          <option value="female">Женский</option>
-        </select>
+      <label for="gender">Пол:</label>
+      <select id="gender" v-model="gender">
+        <option value="">Выберите пол</option>
+        <option value="male">Мужской</option>
+        <option value="female">Женский</option>
+      </select>
 
-        <label for="date">Дата:</label>
-        <input type="date" id="date" v-model="create_tm">
+      <label for="date">Дата:</label>
+      <input type="date" id="date" v-model="create_tm">
 
-        <label for="experienceFrom">Опыт (от):</label>
-        <input type="number" id="experienceFrom" v-model="experienceFrom" min="0" max="120" placeholder="От (мес)">
+      <label for="experienceFrom">Опыт (от):</label>
+      <input type="number" id="experienceFrom" v-model="experienceFrom" min="0" max="120" placeholder="От (мес)">
 
-        <label for="education">Образование:</label>
-        <select id="education" v-model="education">
-          <option value="">Выберите образование</option>
-          <option value="secondary">Среднее</option>
-          <option value="higher">Высшее</option>
-          <option value="not_important">Не имеет значения</option>
-        </select>
+      <label for="education">Образование:</label>
+      <select id="education" v-model="education">
+        <option value="">Выберите образование</option>
+        <option value="secondary">Среднее</option>
+        <option value="higher">Высшее</option>
+        <option value="not_important">Не имеет значения</option>
+      </select>
 
-        <label for="ageFrom">Возраст (от):</label>
-        <input type="number" id="ageFrom" v-model="ageFrom" min="18" max="100" placeholder="От (лет)">
+      <label for="ageFrom">Возраст (от):</label>
+      <input type="number" id="ageFrom" v-model="ageFrom" min="18" max="100" placeholder="От (лет)">
 
-        <label for="ageTo">Возраст (до):</label>
-        <input type="number" id="ageTo" v-model="ageTo" min="18" max="100" placeholder="До (лет)">
+      <label for="ageTo">Возраст (до):</label>
+      <input type="number" id="ageTo" v-model="ageTo" min="18" max="100" placeholder="До (лет)">
 
-        <button class="button" @click="clearFetchResumes()">
-          <span v-if="!loading">Найти</span>
-          <span v-else class="loader"></span>
-        </button>
+      <button class="button" @click="clearFetchResumes()">
+        <span v-if="!loading">Найти</span>
+        <span v-else class="loader"></span>
+      </button>
 
-      </aside>
+    </aside>
 
-      <main class="main">
+    <main class="main">
 
-        <div class="resume" v-for="resume in resumes" :key="resume.id">
+      <div class="resume" v-for="resume in resumes" :key="resume.id">
 
-          <h3>{{ resume.profession.__data__.name }}</h3>
-          <p><strong>Загружено:</strong> {{ formatDate(resume.platform_resume_tm_create) }}</p>
-          <p><strong>Обновлено:</strong> {{ formatDate(resume.platform_resume_tm_update) }}</p>
-          <p><strong>Город:</strong> {{ resume.city.__data__.name }}</p>
-          <p v-if="resume.age"><strong>Возраст:</strong> {{ resume.age }}</p>
-          <p><strong>Пол:</strong> {{ gender_dict[resume.sex] }}</p>
-          <p v-if="resume.salary_from"><strong>Зарплатные ожидания от:</strong> {{ resume.salary_from }} {{
-            resume.currency }}</p>
-          <p v-if="resume.experience_months"><strong>Опыт работы (в месяцах):</strong> {{ resume.experience_months }}
-          </p>
-          <a :href="resume.link" target="_blank" class="platform-button">
-            <img :src="platform_img_dict[resume.platform.__data__.name]" alt=""><span class="arrow-right"></span>
-          </a>
-        </div>
-        <div v-if="error" class="text-danger">{{ error }}</div>
-        <button v-if="resumes" class="button" @click="loadMore()">
-                <span v-if="!loading">Найти далее</span>
-                <span v-else class="loader"></span>
-            </button>
-      </main>
-    </div>
+        <h3>{{ resume.profession.__data__.name }}</h3>
+        <p><strong>Загружено:</strong> {{ formatDate(resume.platform_resume_tm_create) }}</p>
+        <p><strong>Город:</strong> {{ resume.city.__data__.name }}</p>
+        <p v-if="resume.age"><strong>Возраст:</strong> {{ resume.age }}</p>
+        <p><strong>Пол:</strong> {{ gender_dict[resume.sex] }}</p>
+        <p v-if="resume.salary_from"><strong>Зарплатные ожидания от:</strong> {{ resume.salary_from }} {{
+          resume.currency }}</p>
+        <p v-if="resume.experience_months"><strong>Опыт работы (в месяцах):</strong> {{ resume.experience_months }}</p>
+        <p v-if="resume.phone"><strong>Телефон:</strong> {{ resume.phone }} <img src="../assets/whatsapp.png"
+            alt="Button" class="wa-button" @click="selectPhone(resume.phone)" /></p>
+        <a :href="resume.link" target="_blank" class="platform-button">
+          <img :src="platform_img_dict[resume.platform.__data__.name]" alt=""><span class="arrow-right"></span>
+        </a>
+      </div>
+      <div v-if="error" class="text-danger">{{ error }}</div>
+      <button v-if="resumes" class="button" @click="loadMore()">
+        <span v-if="!loading">Найти далее</span>
+        <span v-else class="loader"></span>
+      </button>
+    </main>
+  </div>
 
 </template>
 
@@ -119,6 +119,10 @@ export default {
       });
     },
 
+    selectPhone(phone) {
+      this.$emit('selectPhone', phone);
+    },
+
     async clearFetchResumes() {
       this.resumes = [];
       window.scrollTo(0, 0);
@@ -169,11 +173,7 @@ export default {
       }
     },
   },
-  mounted() {
-    // window.addEventListener('scroll', this.handleScroll);
-    // this.fetchResumes();
 
-  },
   beforeDestroy() {
     window.removeEventListener('scroll', this.handleScroll);
   },
@@ -297,9 +297,9 @@ select {
   right: 10px;
   display: inline-flex;
   align-items: center;
-  background-color: rgba(3, 94, 4, 0.514);
+  background-color: rgba(255, 255, 255, 0.0);
   color: white;
-  padding: 10px 15px;
+  padding: 3px 3px;
   border-radius: 5px;
   text-decoration: none;
 }
@@ -316,7 +316,7 @@ select {
 
 .platform-button:hover {
   transition: background-color 0.3s;
-  background-color: rgba(3, 94, 4, 0.7);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .loader {
@@ -337,5 +337,13 @@ select {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.wa-button {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  bottom: -7px;
+  cursor: pointer;
 }
 </style>
